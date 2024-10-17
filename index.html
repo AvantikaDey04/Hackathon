@@ -1,0 +1,111 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Query System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2 class="text-center mb-4">PDF Query System</h2>
+
+        <!-- File upload form -->
+        <div class="mb-4">
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="file" class="form-label">Upload a PDF file:</label>
+                    <input type="file" class="form-control" id="file" name="file" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Upload PDF</button>
+            </form>
+        </div>
+
+        <!-- Question suggestion -->
+        <div class="mb-4">
+            <button class="btn btn-info" id="generateQuestions">Generate Questions</button>
+            <ul id="questionsList" class="list-group mt-3"></ul>
+        </div>
+
+        <!-- Query form -->
+        <div class="mb-4">
+            <form id="queryForm">
+                <div class="mb-3">
+                    <label for="query" class="form-label">Enter your query:</label>
+                    <input type="text" class="form-control" id="query" name="query" placeholder="Ask something about the PDF" required>
+                </div>
+                <button type="submit" class="btn btn-success">Submit Query</button>
+            </form>
+        </div>
+
+        <!-- Response area -->
+        <div id="responseArea" class="mt-4">
+            <h5>Response:</h5>
+            <p id="responseText"></p>
+            <p id="citationText" class="text-muted"></p>
+        </div>
+    </div>
+
+    <script>
+        // Handle file upload
+        document.getElementById('uploadForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const fileInput = document.getElementById('file');
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            alert(result.message || result.error);
+        });
+
+        // Handle question generation
+        document.getElementById('generateQuestions').addEventListener('click', async function() {
+            const response = await fetch('/generate_questions');
+            const result = await response.json();
+
+            const questionsList = document.getElementById('questionsList');
+            questionsList.innerHTML = '';
+
+            if (result.questions) {
+                result.questions.forEach((question, index) => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = question;
+                    listItem.classList.add('list-group-item');
+                    questionsList.appendChild(listItem);
+                });
+            } else {
+                alert(result.error);
+            }
+        });
+
+        // Handle query submission
+        document.getElementById('queryForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const queryInput = document.getElementById('query').value;
+
+            const response = await fetch('/query', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ query: queryInput })
+            });
+
+            const result = await response.json();
+            if (result.answer) {
+                document.getElementById('responseText').innerText = result.answer;
+                document.getElementById('citationText').innerText = `Citation: ${result.citation}`;
+            } else {
+                document.getElementById('responseText').innerText = "No response available.";
+                document.getElementById('citationText').innerText = "";
+            }
+        });
+    </script>
+</body>
+</html>
